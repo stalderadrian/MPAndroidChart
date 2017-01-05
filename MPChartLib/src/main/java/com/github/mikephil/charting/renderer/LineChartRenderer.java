@@ -234,6 +234,10 @@ public class LineChartRenderer extends LineRadarRenderer {
                 curDx = (next.getX() - prev.getX()) * intensity;
                 curDy = (next.getY() - prev.getY()) * intensity;
 
+                // Limit the x-intensity to prevent cubic lines looping and going backwards
+                prevDx = Math.min(prevDx, intensity * 2);
+                curDx = Math.min(curDx, intensity * 2);
+
                 cubicPath.cubicTo(prev.getX() + prevDx, (prev.getY() + prevDy) * phaseY,
                         cur.getX() - curDx,
                         (cur.getY() - curDy) * phaseY, cur.getX(), cur.getY() * phaseY);
