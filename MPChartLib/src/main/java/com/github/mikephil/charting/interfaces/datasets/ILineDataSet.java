@@ -80,6 +80,18 @@ public interface ILineDataSet extends ILineRadarDataSet<Entry> {
     boolean isDrawCircleHoleEnabled();
 
     /**
+     * Set this to false to prevent drawing overlapping y-values.
+     *
+     * @param enabled
+     */
+    void setDrawValuesOverlap(boolean enabled);
+
+    /**
+     * Returns true if y-values are allowed to overlap, false if they are not allowed to overlap.
+     */
+    boolean isDrawValuesOverlapEnabled();
+
+    /**
      * Returns the DashPathEffect that is used for drawing the lines.
      *
      * @return

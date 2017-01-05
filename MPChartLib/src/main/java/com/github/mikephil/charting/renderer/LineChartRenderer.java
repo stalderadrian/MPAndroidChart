@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 
 import com.github.mikephil.charting.animation.ChartAnimator;
@@ -24,6 +25,7 @@ import com.github.mikephil.charting.utils.ViewPortHandler;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TreeMap;
 
 public class LineChartRenderer extends LineRadarRenderer {
 
@@ -521,6 +523,7 @@ public class LineChartRenderer extends LineRadarRenderer {
         if (isDrawingValuesAllowed(mChart)) {
 
             List<ILineDataSet> dataSets = mChart.getLineData().getDataSets();
+            TreeMap<Integer, Rect> prevRects = null;
 
             for (int i = 0; i < dataSets.size(); i++) {
 
@@ -528,6 +531,11 @@ public class LineChartRenderer extends LineRadarRenderer {
 
                 if (!shouldDrawValues(dataSet))
                     continue;
+
+                boolean drawValuesOverlap = dataSet.isDrawValuesOverlapEnabled();
+                if (!drawValuesOverlap && prevRects == null) {
+                    prevRects = new TreeMap<Integer, Rect>();
+                }
 
                 // apply the text-styling defined by the DataSet
                 applyValueTextStyle(dataSet);
@@ -545,6 +553,11 @@ public class LineChartRenderer extends LineRadarRenderer {
                 float[] positions = trans.generateTransformedValuesLine(dataSet, mAnimator.getPhaseX(), mAnimator
                         .getPhaseY(), mXBounds.min, mXBounds.max);
 
+                if (!drawValuesOverlap) {
+                    prevRects.clear();
+                }
+
+                loop:
                 for (int j = 0; j < positions.length; j += 2) {
 
                     float x = positions[j];
@@ -557,6 +570,21 @@ public class LineChartRenderer extends LineRadarRenderer {
                         continue;
 
                     Entry entry = dataSet.getEntryForIndex(j / 2 + mXBounds.min);
+
+                    String formatted = dataSet.getValueFormatter().getFormattedValue(entry.getY(), entry, i, mViewPortHandler);
+
+                    if (!drawValuesOverlap) {
+                        Rect curRect = new Rect();
+                        mValuePaint.getTextBounds(formatted, 0, formatted.length(), curRect);
+                        curRect.offset((int) x, (int) (y - valOffset));
+                        prevRects.headMap((int) x).clear(); // No need to check rects older than this
+                        for (Rect prevRect : prevRects.values()) {
+                            if (curRect.intersect(prevRect)) {
+                                continue loop;
+                            }
+                        }
+                        prevRects.put(curRect.right, curRect);
+                    }
 
                     drawValue(c, dataSet.getValueFormatter(), entry.getY(), entry, i, x,
                             y - valOffset, dataSet.getValueTextColor(j / 2));
